@@ -41,6 +41,11 @@
 	* [Создание и запись\ дозапись](#создание-и-запись-дозапись)
 	* [Чтение, Вариант посимвольно](#чтение-вариант-посимвольно)
 	* [Вариант построчно](#вариант-построчно)
+* [Строки](#строки)
+* [Работа с файловой системой](#работа-с-файловой-системой)
+* [Логирование](#логирование)
+* [Импорт](#импорт)
+* [Xml](#xml)
 
 </details>
 
@@ -568,6 +573,8 @@ spring:foo:bar
 
     все эти методы делают то же для остальных типов данных.
 
+<br/>
+
 ```java
 import java.util.Scanner;
 public class program {
@@ -650,13 +657,6 @@ public class program {
 }
 ```
 
-```mermaid
-
-```
-
-```java
-
-```
 ___
 ### [Форматированный вывод](#форматированный-вывод)
 ##### [оглавление](#оглавление)
@@ -861,6 +861,7 @@ public class program {
 import java.util.Scanner;
 public class program {
     public static void main(String[] args) {
+        Scanner iScanner = new Scanner(System.in);
         int mounth = iScanner.nextInt();
         String text = "";
             switch (mounth) {
@@ -870,7 +871,6 @@ public class program {
             case 4:
                 text = "Autumn";
                 break;
-            ...
             default:
                 text = "mistake";
                 break;
@@ -879,7 +879,39 @@ public class program {
         iScanner.close();
     }
 }
+
+// начиная с java 14 (не ниже) можно задавать мульти-значения
+            switch (mounth) {
+            case 1, 2, 3, 4:
+                text = "Autumn";
+                break;
+            default:
+                text = "mistake";
+                break;
+            }
+
+// лямбда оператор "->" (который в свою очередь гарантирует , что будет выполнен только код справа от нее, без всякого  "проваливания".)
+import java.util.Scanner;
+public class program {
+    public static void main(String[] args) {
+        int count = 2;
+        int value = switch (count) {
+        case 1, 3, 5 -> 12;
+        case 2, 4, 6 -> 52;
+        default -> 0;
+        };
+        System.out.println(value);
+    }
+}
 ```
+<font size="5"> <span style="color: green"> Итого </span></font>
+
+* Используйте оператор `case` при числе ветвлений более двух, чтобы не загромождать if-структурами код.
+* Не забывайте завершать логический блок каждой ветки соответствующего конкретному значению (блок case) вызовом `break`.
+* Оператор `switch` помимо некоторых примитивных типов, в качестве выражения может использовать также типы `Enum` и `String`.
+* Помните про блок `default` – употребляйте его для обработки незапланированных значений выбора.
+* Для оптимизации производительности переместите ветки кода с наиболее часто встречающимися вариантами выбора к началу блока `switch`.
+* Не увлекайтесь «оптимизацией» за счёт удаления `break` в конце блока выбора `case` – такой код сложен для понимания, и, как следствие, тяжело сопровождать при его развитии.
 ___
 
 ### [Циклы](#циклы)
@@ -1019,3 +1051,219 @@ public class Program {
     }
 }
 ```
+___
+
+### [Строки](#строки)
+##### [оглавление](#оглавление)
+
+```java
+
+```
+___
+
+### [Работа с файловой системой](#работа-с-файловой-системой)
+##### [оглавление](#оглавление)
+
+```java
+
+```
+___
+
+### [Логирование](#логирование)
+<font size="2"> [оглавление](#оглавление) </font>
+
+Логирование с JUL происходит через класс `java.util.logging.Logger`
+
+Данный фреймворк включен в стандарт и поставляется вместе с JDK, поэтому ничего дополнительно скачивать и подключать не надо.
+
+Логер создается вызовом одного из статических методов класса `java.util.logging.Logger`:
+```java
+Logger log = Logger.getLogger(LoggingJul.class.getName());
+// LoggingJul - имя файла, который будем логировать
+```
+
+Для вывода сообщений для логирования указываем уровень логирования и сообщение.
+
+Сообщение же может быть любым текстом(`String`):
+* SEVERE (ошибка)
+* WARNING (предупреждение)
+* INFO (информационное сообщение)
+* CONFIG
+* FINE (сообщение об успешной операции)
+* FINER
+* FINEST
+* ALL
+* OFF
+
+```mermaid
+---
+title: уровни логирования по ВОЗРАСТАНИЮ
+---
+flowchart LR;
+A(FINEST)-->B(FINER)-->C(FINE)-->D(CONFIG)-->E(INFO)-->F(WARNING)-->G(SEVERE)-->H(ALL)-->I(OFF)
+```
+
+Также для каждого из уровней логирования есть множество перегруженных методов с различным числом параметров.
+
+Если мы хотим передать `исключение` в лог, то нужно использовать специальный метод, принимающий Throwable:
+
+```java
+try {
+    Files.readAllBytes(Paths.get("/file/does/not/exist"));
+} catch (IOException ioex) {
+    logger.log(Level.SEVERE, "Error message", ioex);
+}
+```
+
+ПРИМЕРЫ сообщений и уровней
+```java
+// logger - переменная
+logger.log(Level.INFO, "Application started and constructed.");
+// тот же самый результат можно получить вызвав:
+logger.info("Application started and constructed.");
+
+// Мы также можем писать сообщения об ошибках с уровнем логирования SEVERE, предупреждениях WARNING и т. д.:
+logger.info("Application started and constructed.");
+logger.warning("Something to warn");
+logger.severe("Something failed.");
+```
+
+Каждое сообщение, отправленное в логгер проходит фильтры, которые определяют, должно ли оно попасть в результирующий лог, например, по LogLevel, затем через обработчики.
+
+Обработчики `Handlers` направляют результат лога в файл, консоль или куда-нибудь по сети.
+
+В самой Java уже есть 5 `Handlers` (обработчиков), но можно добавлять свои:
+* `StreamHandler` пишет в `OutputStream`
+* `ConsoleHandler` пишет в `System.err`
+* `FileHandler` пишет в файл
+* `SocketHandler` отправляет по сети на указанный порт
+* `MemoryHandler` просто сохраняет в ОЗУ
+
+Форматировщики (SimpleFormatter, XMLFormatter ...) используются для записи логов в определённом формате, например в `XML`, `"простой"` или `HTML`.
+
+Для инициализации логирования необходимы хотя бы следующие строки
+```java
+import java.util.logging.*; // импорт библиотек JUL
+
+Logger journal = Logger.getLogger(Task2.class.getName()); // ввод переменной через метод getLogger(), в ней указываем <Имя файла>.class.getName()
+
+FileHandler fh = new FileHandler("Task2_log.txt"); // в аргументе вводим Имя файла лога
+
+journal.addHandler(fh); // метод addHandler() добавляет созданный наш Handler в лог journal
+
+SimpleFormatter sFormat = new SimpleFormatter(); // создаем переменную, указывающая в каком формате будем записывать логи
+
+fh.setFormatter(sFormat); // для созданного Handler через метод setFormatter() в аргументе указываем формат, в данном случае "простой" формат sFormat
+```
+
+* Использование
+
+    Logger logger = Logger.getLogger()
+
+* Уровни важности
+
+    INFO, DEBUG, ERROR, WARNING и др.
+
+* Вывод
+
+    ConsoleHandler info = new ConsoleHandler();
+
+    log.addHandler(info);
+
+* Формат вывода: структурированный, "абы как" - "простой"
+
+    XMLFormatter, SimpleFormatter
+
+ПРИМЕР с выводом в КОНСОЛЬ используя "простой" формат вывода
+```java
+import java.util.logging.*;
+public class Ex0043 {
+    public static void main(String[] args) {
+        Logger logger = Logger.getLogger(Ex0043.class.getName());
+        logger.setLevel(Level.INFO);
+        ConsoleHandler ch = new ConsoleHandler ();
+        logger.addHandler(ch);
+        SimpleFormatter sFormat = new SimpleFormatter ();
+        ch.setFormatter(sFormat);
+        logger.log(Level.WARNING, "Тестовое логирование" );
+        logger.info("Тестовое логирование" ); // тоже что и logger.log(Level.INFO, "Тестовое логирование");
+    }
+}
+```
+
+ПРИМЕР с выводом в КОНСОЛЬ используя "XML" формат вывода
+```java
+import java.util.logging.*;
+public class Ex0043 {
+    public static void main(String[] args) {
+        Logger logger = Logger.getLogger(Ex0043.class.getName());
+        logger.setLevel(Level.INFO);
+        ConsoleHandler ch = new ConsoleHandler();
+        logger.addHandler(ch);
+        XMLFormatter xml = new XMLFormatter();
+        ch.setFormatter(xml);
+        logger.log(Level.WARNING, "Тестовое логирование");
+        logger.info("Тестовое логирование"); // тоже что и logger.log(Level.INFO, "Тестовое логирование");
+    }
+}
+```
+
+ПРИМЕР с выводом в ФАЙЛ используя "простой" формат вывода (пузырьковая сортировка числового массива)
+```java
+// Используя FileHandler - возможно не будет работать без строки throws SecurityException, IOException
+public class Task2 {
+    public static void main(String[] args) throws SecurityException, IOException {
+```
+```java
+import java.util.Arrays;
+import java.io.IOException;
+import java.util.logging.*;
+
+public class Task2 {
+    public static void main(String[] args) throws SecurityException, IOException {
+        Logger journal = Logger.getLogger(Task2.class.getName());
+        FileHandler fh = new FileHandler("Task2_log.txt");
+        journal.addHandler(fh);
+        SimpleFormatter sFormat = new SimpleFormatter();
+        fh.setFormatter(sFormat);
+
+        int[] num_arr = new int[] {7, 8, 3, 5, 1, 6, 2, 9, 4};
+        int size_arr = num_arr.length;
+        int count = 0;
+        String msg = "";
+
+        for (int current = 0; current < size_arr - 1; current++) {
+            for (int i = 0; i < (size_arr - 1 - current); i++) {
+                if (num_arr[i] > num_arr[i + 1]){
+                    int temp = num_arr[i];
+                    num_arr[i] = num_arr[i + 1];
+                    num_arr[i + 1] = temp;
+
+                    msg = String.format("%d. Массив стал %s \n", count++, Arrays.toString(num_arr));
+                } else { msg = String.format("%d. Массив не изменился с предыдущей итерации \n", count++); }
+                
+                journal.log(Level.INFO, msg);
+            }
+        }
+        msg = String.format("Было произведено %d операций.\nРезультат сортировки  - %s", --count, Arrays.toString(num_arr));
+        journal.log(Level.INFO, msg);
+    }
+}
+```
+___
+
+### [Импорт](#импорт)
+##### [оглавление](#оглавление)
+
+```java
+
+```
+___
+
+### [Xml](#xml)
+##### [оглавление](#оглавление)
+
+```java
+
+```
+___
